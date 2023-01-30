@@ -9,7 +9,7 @@ cd .. # You are in the workspace src folder
 rm -f .rosinstall
 rm -f .rosinstall.bak
 wstool init .
-wstool merge -t . https://raw.githubusercontent.com/ros-planning/moveit/master/alexandros.rosinstall
+wstool merge -t . https://https://raw.githubusercontent.com/HMI2-Research-Group/alexandros_robot/master/alexandros.rosinstall
 wstool update -t .
 rosdep install -y --from-paths . --ignore-src --rosdistro ${ROS_DISTRO}
 cd .. # You are in the workspace root
