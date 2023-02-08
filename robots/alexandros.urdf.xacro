@@ -6,14 +6,16 @@
 
     <!-- Initialize Panda -->
     <xacro:arg name="arm_id" default="panda" />
+    <xacro:arg name="hand" default="true" />
     <xacro:franka_robot arm_id="$(arg arm_id)"
                         joint_limits="${xacro.load_yaml('$(find franka_description)/robots/panda/joint_limits.yaml')}">
     </xacro:franka_robot>
 
     <!-- Initialize the Joint between Ridgeback and Panda -->
     <joint name="panda_joint" type="fixed">
-        <parent link="panda_link0"/>
-        <child link="base_link"/>
-        <origin xyz="0 0 0" rpy="0 0 0"/>  
+        <origin xyz="0 0 0.3" rpy="0 0 0"/> 
+        <parent link="base_link"/>
+        <child link="panda_link0"/>         
+    </joint>
 
 </robot>
