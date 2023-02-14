@@ -16,14 +16,14 @@
 
     <!-- Initialize the Joint between Ridgeback and Panda -->
     <joint name="panda_joint" type="fixed">
-        <origin xyz="0 0 0.3" rpy="0 0 0"/> 
+        <origin xyz="0 0 0.7112" rpy="0 0 0"/> 
         <parent link="base_link"/>
         <child link="panda_link0"/>         
     </joint>
 
     <!-- Add Camera -->
     <xacro:sensor_d455 parent="panda_hand" use_nominal_extrinsics="$(arg use_nominal_extrinsics)">
-    <origin xyz="0.09 0 0" rpy="0 0 0"/>
+    <origin xyz="0.05 0 0" rpy="0 -1.57 0"/>
   </xacro:sensor_d455>
 
 </robot>
