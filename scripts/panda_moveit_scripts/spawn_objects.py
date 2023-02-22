@@ -73,7 +73,7 @@ class MoveGroup(object):
 
         box_name = "box"
         self.scene.add_mesh(
-            box_name, box_pose, "/home/student/PycharmProjects/panda_ws/src/alexandros_robot/meshes/Pasta_Box.stl"
+            box_name, box_pose, "/home/student/PycharmProjects/panda_ws/src/alexandros_robot/meshes/Pasta_Box.obj"
         )
 
         # return self.wait_for_state_update(box_is_known=True, timeout=timeout)
@@ -85,7 +85,7 @@ def main():
         environment = MoveGroup()
 
         print("Adding box to scene")
-        environment.add_box(xpos=0.2, ypos=0.2, zpos=0.2)
+        environment.add_box(xpos=0.0, ypos=0.0, zpos=0.0)
 
     except rospy.ROSInterruptException:
         return
