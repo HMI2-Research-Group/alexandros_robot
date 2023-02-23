@@ -85,7 +85,7 @@ def main():
         environment = MoveGroup()
 
         print("Adding box to scene")
-        environment.add_box(xpos=0.0, ypos=0.0, zpos=0.0)
+        environment.add_box(xpos=0.5334, ypos=0.151, zpos=0.2286)
 
     except rospy.ROSInterruptException:
         return
