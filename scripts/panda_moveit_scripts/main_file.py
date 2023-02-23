@@ -21,25 +21,19 @@ class pick_and_place:
         ## First initialize moveit_commander and rospy.
         print("============ Starting tutorial setup")
         moveit_commander.roscpp_initialize(sys.argv)
-
-    def go_to_pose(self, my_goal):
         moveit_commander.roscpp_initialize(sys.argv)
         rospy.init_node("close_gripper", anonymous=True)
         moveit_commander.RobotCommander()
         group_name = "panda_arm"
         self.group = moveit_commander.MoveGroupCommander(group_name)
+
+    def go_to_pose(self, my_goal):
         # Get current joint values
         print("============ Printing robot joint values")
         print(self.group.get_current_joint_values())
         print("============")
         # We can get the joint values from the group and adjust some of the values:
         self.group.go(my_goal, wait=True)
-        self.group.stop()
-        # It is always good to clear your targets after planning with poses.
-        # Note: there is no equivalent function for clear_joint_value_targets()
-        self.group.clear_pose_targets()
-        # When finished shut down moveit_commander.
-        moveit_commander.roscpp_shutdown()
 
     def grasp_object(self):
         # Creates the SimpleActionClient, passing the type of the action
@@ -57,7 +51,7 @@ class pick_and_place:
         goal.epsilon.inner = obj_width / 3
         goal.epsilon.outer = obj_width / 3
         goal.speed = 0.08
-        goal.force = 5.0
+        goal.force = 10.0
 
         # Sends the goal to the action server.
         client.send_goal(goal)
@@ -93,6 +87,11 @@ class pick_and_place:
 
         # Prints out the result of executing the action
         print(client.get_result())
+
+    def close_moveit(self):
+        self.group.stop()
+        self.group.clear_pose_targets()
+        moveit_commander.roscpp_shutdown()
 
 
 if __name__ == "__main__":
@@ -135,3 +134,4 @@ if __name__ == "__main__":
     )
     sleep(5)
     saleh.open_gripper()
+    saleh.close_moveit()
