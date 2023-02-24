@@ -45,7 +45,7 @@ class pick_and_place:
         client.wait_for_server()
 
         # Creates a goal to send to the action server.
-        obj_width = 2.76e-3
+        obj_width = 2.00e-3
         goal = franka_gripper.msg.GraspGoal()
         goal.width = obj_width
         goal.epsilon.inner = obj_width / 3
@@ -107,8 +107,8 @@ if __name__ == "__main__":
             1.0570489505046525,
         ]
     )
-    saleh.grasp_object()
     sleep(5)
+    saleh.grasp_object()
     saleh.go_to_pose(
         [
             -0.08905661694923449,
@@ -120,7 +120,6 @@ if __name__ == "__main__":
             1.0572583099421455,
         ]
     )
-    sleep(5)
     saleh.go_to_pose(
         [
             -0.9768937012676092,
@@ -132,6 +131,5 @@ if __name__ == "__main__":
             0.7838235893651015,
         ]
     )
-    sleep(5)
     saleh.open_gripper()
     saleh.close_moveit()
