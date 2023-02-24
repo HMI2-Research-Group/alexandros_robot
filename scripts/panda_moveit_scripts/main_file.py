@@ -1,4 +1,5 @@
 # This file contains API to close the gripper in Panda robot using moveit
+# Checkout test_controller_gamepad_lt.py and testing_motion.py
 from __future__ import print_function
 import sys
 import copy
