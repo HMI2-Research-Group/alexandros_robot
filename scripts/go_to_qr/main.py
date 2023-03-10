@@ -5,12 +5,6 @@ import rospy
 from pyzbar import pyzbar
 
 
-# def qr_code_data(image):
-#     data, bbox, straight_qrcode = detector.detectAndDecode(image)
-
-#     if data:
-#         print("data found: ", data)
-#     return data
 def qr_code_data(image):
     barcodes = pyzbar.decode(image)
     for barcode in barcodes:
