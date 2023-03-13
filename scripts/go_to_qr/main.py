@@ -10,11 +10,17 @@ speed_robot = None
 pub = None  # rospy.Publisher("/cmd_vel", Twist, queue_size=100)
 
 
-def get_angle(qrcode, aligned_depth_image, depth_intrin):
+def get_angle(image, qrcode, aligned_depth_image, depth_intrin):
     poly = qrcode.polygon
     x1, y1 = poly[0].x, poly[0].y
+    if x1 < 0:
+        x1, y1 = poly[2].x, poly[2].y
     x2, y2 = poly[1].x, poly[1].y
-    x3, y3 = poly[2].x, poly[2].y
+    x3, y3 = poly[3].x, poly[3].y
+    # Plot the points as green dots on the image
+    cv2.circle(image, (x1, y1), 3, (0, 255, 0), -1)
+    cv2.circle(image, (x2, y2), 3, (0, 255, 0), -1)
+    cv2.circle(image, (x3, y3), 3, (0, 255, 0), -1)
     # get 3d point
     depth_point1 = pyrealsense2.rs2_deproject_pixel_to_point(
         depth_intrin, [x1, y1], aligned_depth_image.get_distance(x1, y1)
@@ -32,7 +38,7 @@ def get_angle(qrcode, aligned_depth_image, depth_intrin):
     v2 = np.array(
         [depth_point1[0] - depth_point3[0], depth_point1[1] - depth_point3[1], depth_point1[2] - depth_point3[2]]
     )
-    normal = np.cross(v1, v2)
+    normal = np.cross(v2, v1)
     # Get unit vector pointing towards the camera
     camera_vector = np.array([1, 0, 0])
     # Get angle between the two vectors
@@ -60,7 +66,8 @@ def qr_code_data(interested_barcode, image, aligned_depth_image, depth_intrin):
         # print(f"X:{depth_point[0]}, Y:{depth_point[1]}, Z:{depth_point[2]}")
         barcodeData = barcode.data.decode("utf-8")
         barcodeType = barcode.type
-        print(f"Barcode Angle: {get_angle(barcode, aligned_depth_image, depth_intrin)}")
+        theta = get_angle(image, barcode, aligned_depth_image, depth_intrin)
+        print(f"Barcode Angle: {theta}")
         # get 2 digits after the decimal point of the depth
         depth = float("{:.2f}".format(depth))
         # draw the barcode data and barcode type on the image
@@ -70,7 +77,8 @@ def qr_code_data(interested_barcode, image, aligned_depth_image, depth_intrin):
         # print the barcode type and data to the terminal
         # print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeData))
         # Change it to Ridgeback coordinates
-        return (depth_point[2], -depth_point[0], -depth_point[1])
+        if barcodeData == interested_barcode:
+            return (depth_point[2], -depth_point[0], -depth_point[1], theta)
     return None
 
 
@@ -88,25 +96,23 @@ def move_robot(x_vel, y_vel, z_vel):
         pub.publish(twist)
 
 
-def command_robot(x, y, z):
+def command_robot(x, y, z, theta):
     x_vel = 0.0
     y_vel = 0.0
     z_vel = 0.0
-    if y > 0.1:
-        y_vel = speed_robot
-    elif y < -0.1:
+    reached_qr = False
+    if theta > 91.0:
         y_vel = -speed_robot
+        z_vel = -speed_robot
+    elif theta < 89.0:
+        y_vel = speed_robot
+        z_vel = speed_robot
     else:
         y_vel = 0.0
-    if x > 0.75:
-        x_vel = speed_robot
-    elif x < 0.7:
-        x_vel = -speed_robot
-    else:
-        x_vel = 0.0
-    if x_vel == 0.0 and y_vel == 0.0:
+    if y_vel == 0.0:
         return True
     move_robot(x_vel, y_vel, z_vel)
+    return False
 
 
 def main():
@@ -142,6 +148,9 @@ def main():
                 reached_destination = command_robot(*qr_output_data)
                 if reached_destination:
                     break
+            else:
+                # rotate robot
+                move_robot(0.0, 0.0, speed_robot)
             cv2.imshow("RealSense", color_image)
             # cv2 waitkey
             key = cv2.waitKey(1)
@@ -154,6 +163,6 @@ def main():
 
 if __name__ == "__main__":
     rospy.init_node("go_to_qr", anonymous=True)
-    speed_robot = 0.05
+    speed_robot = 0.03
     pub = rospy.Publisher("/cmd_vel", Twist, queue_size=5)
     main()
