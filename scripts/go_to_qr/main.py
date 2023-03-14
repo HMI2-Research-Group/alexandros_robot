@@ -10,45 +10,99 @@ speed_robot = None
 pub = None  # rospy.Publisher("/cmd_vel", Twist, queue_size=100)
 
 
+def change_to_ridgeback_axes(x, y, z):
+    return z, -x, -y
+
+
 def get_angle(image, qrcode, aligned_depth_image, depth_intrin):
-    poly = qrcode.polygon
-    x1, y1 = poly[0].x, poly[0].y
-    if x1 < 0:
-        x1, y1 = poly[2].x, poly[2].y
-    x2, y2 = poly[1].x, poly[1].y
-    x3, y3 = poly[3].x, poly[3].y
-    # Plot the points as green dots on the image
-    cv2.circle(image, (x1, y1), 3, (0, 255, 0), -1)
-    cv2.circle(image, (x2, y2), 3, (0, 255, 0), -1)
-    cv2.circle(image, (x3, y3), 3, (0, 255, 0), -1)
-    # get 3d point
-    depth_point1 = pyrealsense2.rs2_deproject_pixel_to_point(
-        depth_intrin, [x1, y1], aligned_depth_image.get_distance(x1, y1)
-    )
-    depth_point2 = pyrealsense2.rs2_deproject_pixel_to_point(
-        depth_intrin, [x2, y2], aligned_depth_image.get_distance(x2, y2)
-    )
-    depth_point3 = pyrealsense2.rs2_deproject_pixel_to_point(
-        depth_intrin, [x3, y3], aligned_depth_image.get_distance(x3, y3)
-    )
-    # Get unit vector perpendicular to the plane containing depth_point1, depth_point2, depth_point3
-    v1 = np.array(
-        [depth_point1[0] - depth_point2[0], depth_point1[1] - depth_point2[1], depth_point1[2] - depth_point2[2]]
-    )
-    v2 = np.array(
-        [depth_point1[0] - depth_point3[0], depth_point1[1] - depth_point3[1], depth_point1[2] - depth_point3[2]]
-    )
-    normal = np.cross(v2, v1)
-    # Get unit vector pointing towards the camera
-    camera_vector = np.array([1, 0, 0])
-    # Get angle between the two vectors
-    angle = atan2(np.linalg.norm(np.cross(camera_vector, normal)), np.dot(camera_vector, normal))
-    # Convert to degrees
-    angle = angle * 180 / pi
-    return angle
+    try:
+        poly = qrcode.polygon
+        x1, y1 = poly[0].x, poly[0].y
+        x2, y2 = poly[1].x, poly[1].y
+        x3, y3 = poly[2].x, poly[2].y
+        # Plot the points as green dots on the image
+        cv2.circle(image, (x1, y1), 3, (0, 255, 0), -1)
+        cv2.circle(image, (x2, y2), 3, (0, 255, 0), -1)
+        cv2.circle(image, (x3, y3), 3, (0, 255, 0), -1)
+        # get 3d point
+        depth_point1 = pyrealsense2.rs2_deproject_pixel_to_point(
+            depth_intrin, [x1, y1], aligned_depth_image.get_distance(x1, y1)
+        )
+        depth_point1 = change_to_ridgeback_axes(depth_point1[0], depth_point1[1], depth_point1[2])
+        depth_point1 = (
+            float("{:.2f}".format(depth_point1[0])),
+            float("{:.2f}".format(depth_point1[1])),
+            float("{:.2f}".format(depth_point1[2])),
+        )
+        cv2.putText(
+            image,
+            f"1, {(depth_point1[0], depth_point1[1], depth_point1[2])}",
+            (x1, y1),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 255, 0),
+            2,
+        )
+        depth_point2 = pyrealsense2.rs2_deproject_pixel_to_point(
+            depth_intrin, [x2, y2], aligned_depth_image.get_distance(x2, y2)
+        )
+        depth_point2 = change_to_ridgeback_axes(depth_point2[0], depth_point2[1], depth_point2[2])
+        # trim the floats to 2 digits after the decimal point
+        depth_point2 = (
+            float("{:.2f}".format(depth_point2[0])),
+            float("{:.2f}".format(depth_point2[1])),
+            float("{:.2f}".format(depth_point2[2])),
+        )
+        cv2.putText(
+            image,
+            f"2, {(depth_point2[0], depth_point2[1], depth_point2[2])}",
+            (x2, y2),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 255, 0),
+            2,
+        )
+        depth_point3 = pyrealsense2.rs2_deproject_pixel_to_point(
+            depth_intrin, [x3, y3], aligned_depth_image.get_distance(x3, y3)
+        )
+        depth_point3 = change_to_ridgeback_axes(depth_point3[0], depth_point3[1], depth_point3[2])
+        depth_point3 = (
+            float("{:.2f}".format(depth_point3[0])),
+            float("{:.2f}".format(depth_point3[1])),
+            float("{:.2f}".format(depth_point3[2])),
+        )
+        cv2.putText(
+            image,
+            f"3, {(depth_point3[0], depth_point3[1], depth_point3[2])}",
+            (x3, y3),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 255, 0),
+            2,
+        )
+
+        # Get unit vector perpendicular to the plane containing depth_point1, depth_point2, depth_point3
+        v1 = np.array(
+            [depth_point1[0] - depth_point2[0], depth_point1[1] - depth_point2[1], depth_point1[2] - depth_point2[2]]
+        )
+        v2 = np.array(
+            [depth_point1[0] - depth_point3[0], depth_point1[1] - depth_point3[1], depth_point1[2] - depth_point3[2]]
+        )
+        normal = np.cross(v2, v1)
+        # Get unit vector pointing towards the camera
+        camera_vector = np.array([0, 1, 0])
+        # Get angle between the two vectors
+        angle = atan2(np.linalg.norm(np.cross(camera_vector, normal)), np.dot(camera_vector, normal))
+        # Convert to degrees
+        angle = angle * 180 / pi
+        return angle
+    except:
+        return None
 
 
 def qr_code_data(interested_barcode, image, aligned_depth_image, depth_intrin):
+    # make the input image from 480x640 to 640x480
+
     barcodes = pyzbar.decode(image)
     for barcode in barcodes:
         # extract the bounding box location of the barcode and draw the
@@ -77,8 +131,8 @@ def qr_code_data(interested_barcode, image, aligned_depth_image, depth_intrin):
         # print the barcode type and data to the terminal
         # print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeData))
         # Change it to Ridgeback coordinates
-        if barcodeData == interested_barcode:
-            return (depth_point[2], -depth_point[0], -depth_point[1], theta)
+        if barcodeData == interested_barcode and theta is not None:
+            return (x_mid, y_mid, *change_to_ridgeback_axes(depth_point[0], depth_point[1], depth_point[2]), theta)
     return None
 
 
@@ -96,22 +150,83 @@ def move_robot(x_vel, y_vel, z_vel):
         pub.publish(twist)
 
 
-def command_robot(x, y, z, theta):
-    x_vel = 0.0
-    y_vel = 0.0
-    z_vel = 0.0
-    reached_qr = False
-    if theta > 91.0:
-        y_vel = -speed_robot
-        z_vel = -speed_robot
-    elif theta < 89.0:
-        y_vel = speed_robot
-        z_vel = speed_robot
-    else:
+def make_robot_center_qr(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+    mid_threshold = 5
+    if abs(pixel_mid_x - 320) > mid_threshold:
+        if pixel_mid_x > 320:
+            move_robot(0.0, 0.0, speed_robot)
+        else:
+            move_robot(0.0, 0.0, -speed_robot)
+
+
+def command_robot(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+    def make_qr_at_center(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+        x_vel = 0.0
         y_vel = 0.0
-    if y_vel == 0.0:
+        z_vel = 0.0
+        mid_threshold = 200
+        if abs(pixel_mid_x - 320) > mid_threshold:
+            if pixel_mid_x > 320:
+                z_vel = -speed_robot
+            else:
+                z_vel = speed_robot
+        else:
+            return True
+        move_robot(x_vel, y_vel, z_vel)
+        return False
+
+    def move_towards_qr(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+        x_vel = 0.0
+        y_vel = 0.0
+        z_vel = 0.0
+        # mid_threshold = 5
+        # if abs(pixel_mid_x - 320) > mid_threshold:
+        #     if pixel_mid_x > 320:
+        #         y_vel = -speed_robot
+        #     else:
+        #         y_vel = speed_robot
+        if x > 0.5:
+            x_vel = speed_robot
+        elif x < 0.3:
+            x_vel = -speed_robot
+        if x_vel == 0.0 and y_vel == 0.0:
+            return True
+        move_robot(x_vel, y_vel, z_vel)
+        return False
+
+    def adjust_robot_angle(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+        y_vel = 0.0
+        z_vel = 0.0
+        mid_threshold = 100
+        if abs(pixel_mid_x - 320) > mid_threshold:
+            if pixel_mid_x > 320:
+                y_vel = -speed_robot
+            else:
+                y_vel = speed_robot
+        else:
+            y_vel = 0.0
+
+        if theta < 75:
+            z_vel = speed_robot
+        elif theta > 100:
+            z_vel = -speed_robot
+        else:
+            z_vel = 0.0
+        if y_vel == 0.0 and z_vel == 0.0:
+            return True
+        move_robot(0.0, y_vel, z_vel)
+        return False
+
+    if make_qr_at_center(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+        pass
+    else:
+        return False
+    if move_towards_qr(pixel_mid_x, pixel_mid_y, x, y, z, theta):
+        pass
+    else:
+        return False
+    if adjust_robot_angle(pixel_mid_x, pixel_mid_y, x, y, z, theta):
         return True
-    move_robot(x_vel, y_vel, z_vel)
     return False
 
 
@@ -143,14 +258,15 @@ def main():
             color_image = np.asanyarray(color_frame.get_data())
             # Detect QR Code
             # show the color image
-            qr_output_data = qr_code_data("Location 1", color_image, aligned_depth_frame, depth_intrin)
+            qr_output_data = qr_code_data("Location 2", color_image, aligned_depth_frame, depth_intrin)
             if qr_output_data is not None:
+                make_robot_center_qr(*qr_output_data)
                 reached_destination = command_robot(*qr_output_data)
                 if reached_destination:
                     break
             else:
                 # rotate robot
-                move_robot(0.0, 0.0, speed_robot)
+                move_robot(0.0, 0.0, 0.1)
             cv2.imshow("RealSense", color_image)
             # cv2 waitkey
             key = cv2.waitKey(1)
@@ -163,6 +279,6 @@ def main():
 
 if __name__ == "__main__":
     rospy.init_node("go_to_qr", anonymous=True)
-    speed_robot = 0.03
+    speed_robot = 0.08
     pub = rospy.Publisher("/cmd_vel", Twist, queue_size=5)
     main()
